@@ -14,7 +14,7 @@ docker-compose –version
 ```
  
 
-## Docker + Hadoop + YARN 
+## Docker + Hadoop + YARN + Hive
 
 1. Crear un nuevo directorio para el proyecto 
 2. Crear el archivo docker-compose.yml: 
@@ -78,9 +78,40 @@ services:
       - datanode
       - resourcemanager
 
+  hive-metastore:
+    image: mysql:5.7
+    container_name: hive-metastore
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: metastore
+      MYSQL_USER: hive
+      MYSQL_PASSWORD: hive
+    ports:
+      - 3307:3306
+    volumes:
+      - hive-metastore-data:/var/lib/mysql
+
+  hive-server:
+    image: bde2020/hive:2.3.2
+    container_name: hive-server
+    restart: always
+    environment:
+      HIVE_METASTORE_URIS: thrift://hive-metastore:9083
+      HADOOP_CONF_DIR: /usr/local/hadoop/etc/hadoop
+      HIVE_HOME: /usr/local/hive
+    ports:
+      - 10000:10000
+    depends_on:
+      - hive-metastore
+      - namenode
+      - datanode
+      - resourcemanager
+
 volumes:
   hadoop_namenode:
   hadoop_datanode:
+  hive-metastore-data:
 ```
 3. Crear el archivo de variables de entorno hadoop.env: 
 ```bash
@@ -111,7 +142,29 @@ YARN_CONF_yarn_timeline___service_enabled=true
 YARN_CONF_yarn_timeline___service_generic___application___history_enabled=true
 YARN_CONF_yarn_nodemanager_remote___app___log___dir=/app-logs
 ```
-4. Iniciar el cluster 
+4. Configurar Hive. Agregamos las dependencias necesarias y las configuraciones en el contenedor de Hive.
+Creamos un archivo de configuración hive-site.xml cuyo contenido es:
+```bash
+<configuration>
+  <property>
+    <name>javax.jdo.option.ConnectionURL</name>
+    <value>jdbc:mysql://hive-metastore:3306/metastore</value>
+  </property>
+  <property>
+    <name>javax.jdo.option.ConnectionDriverName</name>
+    <value>com.mysql.cj.jdbc.Driver</value>
+  </property>
+  <property>
+    <name>javax.jdo.option.ConnectionUserName</name>
+    <value>hive</value>
+  </property>
+  <property>
+    <name>javax.jdo.option.ConnectionPassword</name>
+    <value>hive</value>
+  </property>
+</configuration>
+```
+5. Iniciar el cluster 
 ```bash
 docker compose up –d  
  ```
@@ -127,74 +180,81 @@ docker rm CONTAINER_name
 
 5. Prueba del cluster 
 
--Entramos al contenedor namenode 
+Antes debemos detener y eliminar todos los contenedores
 ```bash
-docker compose exec namenode bash 
-```
-Nos debe aparecer un codigo:  
-![img1](assets/img/img1.png)
+docker-compose down
+ ```
+ Verificamos si tenemos algun contenedor en ejecución
+ ```bash
+docker ps
+ ```
+ Levantamos el contenedor
+```bash
+docker compose up –d  
+ ```
 
-Crear un directorio de prueba en HDFS 
-```bash
-hdfs dfs -mkdir -p /user/root/prueba 
-```
+ Vemos que se ha levantado el contenedor con los servicios de Hive
+ ![img0](assets/img/img0.png)
 
-Crear un archivo de prueba 
-```bash
-echo "Hola Mundo estoy testeando" > prueba.txt 
-```
-Podemos comprobar que esta creado con un: 
-```bash
-ls 
-```
 
-Cargamos el archivo desde el sistema de archivos local a HDFS 
-```bash
-hdfs dfs -put prueba.txt /user/root/prueba 
-```
+ ## Realizar consultas básicas SQL con el Cliente de Línea de Comandos de Hive
 
-Verificar que el archivo está en HDFS 
+La forma más común de interactuar con Hive es mediante su cliente de línea de comandos. Aquí están los pasos para conectarte al contenedor de Hive y ejecutar consultas SQL:
+
+1. Acceder al Contenedor de Hive
+Puedes acceder al contenedor de Hive utilizando docker exec. Primero, verifica que el contenedor de Hive está en ejecución:
 ```bash
-hdfs dfs -cat /user/root/prueba/prueba.txt 
+docker ps
 ```
 
- ## Ejemplo WordCount 
- 
-
-1. Crear directorio para input 
+Luego, ejecuta el siguiente comando para entrar al contenedor:
 ```bash
-hdfs dfs -mkdir -p /user/root/wordcount/input 
-```
-  
-
-2. Crear archivo de prueba 
-```bash
-echo "Hola mundo Hola world" > input.txt 
-```
-```bash
-hdfs dfs -put input.txt /user/root/wordcount/input 
-```
- 
-3. Comprobamos que se ha cargado el fichero con: 
-```bash 
-hdfs dfs -ls /user/root/wordcount/input 
+docker exec -it hive-server /bin/bash
 ```
 
-4. Ejecutar WordCount 
+Si nos da error podemos reinciar el contenedor de Hive
 ```bash
-hadoop jar /opt/hadoop-3.2.1/share/hadoop/mapreduce/hadoop-mapreduce-examples-3.2.1.jar wordcount /user/root/wordcount/input /user/root/wordcount/output 
-```
-Si ya existe porque lo hemos ejecutado antes podemos borrar el directorio output:
-```bash
-hdfs dfs -rm -r /user/root/wordcount/output 
-```
-  
-5. Comprobar el resultado 
-```bash
-hdfs dfs -cat /user/root/wordcount/output/part-r-00000 
+docker-compose restart hive-server
 ```
 
-Aquí vemos como nos ha contado las palabras de nuestro archivo en el cual teníamos: 
-"Hola mundo Hola world" 
+2.  Iniciar el Cliente de Hive
+Dentro del contenedor iniciamos el cliente de Hive
+```bash
+hive
+```
 
-![img2](assets/img/img2.png)
+3. Realizar consultas
+  1. Crear una base de datos:
+  ```sql
+  CREATE DATABASE test_db;
+  ```
+  2. Usar la base de datos:
+  ```sql
+  USE test_db;
+  ```
+  3. Crear una tabla:
+  ```sql
+  CREATE TABLE test_table (
+    id INT,
+    name STRING
+  );
+  ```
+  4. Insertar datos en la tabla:
+  ```sql
+  INSERT INTO TABLE test_table VALUES (1, 'Maria'), (2, 'Juan');
+  ```
+  5. Consultar datos:
+  ```sql
+  SELECT * FROM test_table;
+  ```
+
+4. Salir del Cliente de Hive
+Para salir del cliente de Hive, puedes usar: 
+  ```sql
+  exit;
+  ```
+
+  Y para salir del contenedor:
+  ```bash
+  exit
+  ```

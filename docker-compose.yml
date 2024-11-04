@@ -57,6 +57,37 @@ services:
       - datanode
       - resourcemanager
 
+  hive-metastore:
+    image: mysql:5.7
+    container_name: hive-metastore
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: metastore
+      MYSQL_USER: hive
+      MYSQL_PASSWORD: hive
+    ports:
+      - 3307:3306
+    volumes:
+      - hive-metastore-data:/var/lib/mysql
+
+  hive-server:
+    image: bde2020/hive:2.3.2
+    container_name: hive-server
+    restart: always
+    environment:
+      HIVE_METASTORE_URIS: thrift://hive-metastore:9083
+      HADOOP_CONF_DIR: /usr/local/hadoop/etc/hadoop
+      HIVE_HOME: /usr/local/hive
+    ports:
+      - 10000:10000
+    depends_on:
+      - hive-metastore
+      - namenode
+      - datanode
+      - resourcemanager
+
 volumes:
   hadoop_namenode:
   hadoop_datanode:
+  hive-metastore-data:
