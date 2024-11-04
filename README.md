@@ -115,7 +115,7 @@ YARN_CONF_yarn_nodemanager_remote___app___log___dir=/app-logs
 ```bash
 docker compose up –d  
  ```
-![img0](https://tajamar365-my.sharepoint.com/:i:/p/tsuenkit_lui/EYlcf0_wTuhFvL6sdmuCt9MBZJvwy3M7M9N_SurYFw-4YA?e=HVlajd)
+![img0](assets/img/img0.png)
 
 **Si existe ya un contenedor con ese nombre deberemos borrarlo: 
 Buscamos el contenedor con el nombre que ya existe y nos da conflicto 
@@ -132,7 +132,7 @@ docker rm CONTAINER_name
 docker compose exec namenode bash 
 ```
 Nos debe aparecer un codigo:  
-![img1](https://tajamar365-my.sharepoint.com/:i:/p/tsuenkit_lui/ERlL6xRwKAhLtEZi4YotPYUBQDyLoPxwsegGBuye6GflBw?e=ZviUtO)
+![img1](assets/img/img1.png)
 
 Crear un directorio de prueba en HDFS 
 ```bash
@@ -197,4 +197,4 @@ hdfs dfs -cat /user/root/wordcount/output/part-r-00000
 Aquí vemos como nos ha contado las palabras de nuestro archivo en el cual teníamos: 
 "Hola mundo Hola world" 
 
-![img2](https://tajamar365-my.sharepoint.com/:i:/p/tsuenkit_lui/EYEZOmeT-sdOj1uGzJtq78gBKqxB1hBZm9DVgnwFs5SwtA?e=xCCrGr)
+![img2](assets/img/img2.png)
