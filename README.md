@@ -258,3 +258,29 @@ Para salir del cliente de Hive, puedes usar:
   ```bash
   exit
   ```
+
+  ## Paso a Paso para Conectar Power BI a Hive
+
+  1. Verificar que Hive funciona con:
+  ```bash
+  docker ps
+  ```
+
+  Asegurarse de que el contenedor hive-server esté en la lista y en estado "Up".
+
+  2. Abrir Power BI Desktop
+  3. Obtener Datos. Haz clic en el botón "Get Data" (Obtener Datos) en la barra de herramientas superior.
+  4. Seleccionar Hive como Fuente de Datos. 
+  En la ventana que se abre, puedes buscar directamente "Hive" en la barra de búsqueda.
+  5. Configurar la Conexión a Hive.
+  Se abrirá una nueva ventana donde debes proporcionar la información de conexión y introducimos lo siguiente:
+  ```vbnet
+  Server: localhost
+  Port: 10000
+  Database: default
+  ```
+  6. Introducir Credenciales y hacer click en "Connect"
+  7. Navegar por las Tablas de Hive
+  8. Seleccionar Tablas para Importar
+  9. Visualizar los Datos
+   
